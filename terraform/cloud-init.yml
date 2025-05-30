@@ -1,0 +1,12 @@
+#cloud-config
+users:
+  - name: amd48
+    groups: sudo
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIZ6dFBq/VmnLJ1Dsy8Oq37hKVbfxM3t10+gfF46ZUNG amd48@fedora
+package_update: true
+runcmd:
+  - [ apt-get, install, -y, nginx ]
+  - [/bin/bash, -c, 'source /etc/lsb-release; sed -i "s/Welcome to nginx/It is $(hostname) on $DISTRIB_DESCRIPTION/" /var/www/html/index.nginx-debian.html']

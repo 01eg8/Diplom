@@ -1,0 +1,117 @@
+---
+- name: Install Elasticsearch on elasticsearch host
+  hosts: elasticsearch
+  become: yes
+  vars:
+    elasticsearch_version: "8.18.1"
+  tasks:
+
+    - name: Установка elasticsearch
+      become: true
+      apt:
+        deb: "https://mirror.yandex.ru/mirrors/elastic/8/pool/main/e/elasticsearch/elasticsearch-{{ elasticsearch_version }}-amd64.deb"
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Elasticsearch
+      apt:
+        name: elasticsearch={{ elasticsearch_version }}
+        state: present
+
+    - name: cluster master node
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^cluster\.initial_master_nodes: \["elasticsearch"\]$'
+        line: 'cluster.initial_master_nodes: ["{{ ansible_default_ipv4.address }}"]'
+
+    - name: node name
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^#node\.name: node-1$'
+        line: 'node.name: node-1'  
+
+    - name: host name
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^#network\.host: 192\.168\.0\.1$'
+        line: 'network.host: 0.0.0.0'
+
+    - name: host port
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^#http\.port: 9200$'
+        line: 'http.port: 9200'
+
+    - name: Enable and start Elasticsearch service
+      systemd:
+        name: elasticsearch
+        enabled: yes
+        state: started
+
+
+- name: Install Kibana on kibana host
+  hosts: kibana
+  become: yes
+  vars:
+    kibana_version: "8.18.1"
+  tasks:
+
+    - name: Установка Kibana
+      become: true
+      apt:
+        deb: "https://mirror.yandex.ru/mirrors/elastic/8/pool/main/k/kibana/kibana-{{ kibana_version }}-amd64.deb"
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Kibana
+      apt:
+        name: kibana={{ kibana_version }}
+        state: present
+
+    - name: host name
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/kibana/kibana.yml
+        regexp: '^#server\.host: "localhost"$'
+        line: 'server.host: 0.0.0.0'
+    
+    - name: Enable and start Kibana service
+      systemd:
+        name: kibana
+        enabled: yes
+        state: started
+
+# - name: Install logstash on kibana host
+#   hosts: kibana
+#   become: yes
+#   vars:
+#     logstash_version: "8.10.1"
+#   tasks:
+
+#     - name: Установка logstash
+#       become: true
+#       apt:
+#         deb: "https://mirror.yandex.ru/mirrors/elastic/8/pool/main/l/logstash/logstash-{{ logstash_version }}-amd64.deb"
+
+#     - name: Update apt cache
+#       apt:
+#         update_cache: yes
+
+#     - name: Install logstash
+#       apt:
+#         name: logstash={{ logstash_version }}
+#         state: present
+
+#     - name: Enable and start logstash service
+#       systemd:
+#         name: logstash
+#         enabled: yes
+#         state: started
