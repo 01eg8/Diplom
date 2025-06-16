@@ -80,7 +80,7 @@
         zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | sudo -u zabbix psql zabbix
       changed_when: false
 
-    - name: Set new database password for MySQL database in zabbix_server.conf
+    - name: Set new database password for PostgreSQL database in zabbix_server.conf
       ansible.builtin.lineinfile:
         path: /etc/zabbix/zabbix_server.conf
         insertafter: "DBPassword="

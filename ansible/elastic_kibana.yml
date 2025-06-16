@@ -1,5 +1,5 @@
 ---
-- name: Install Elasticsearch on elasticsearch host
+- name: Install Elasticsearch on host
   hosts: elasticsearch
   become: yes
   tasks:
@@ -8,7 +8,7 @@
       apt:
         update_cache: yes
 
-    - name: Установка elasticsearch
+    - name: Install elasticsearch
       apt:
         deb: "https://mirror.yandex.ru/mirrors/elastic/8/pool/main/e/elasticsearch/elasticsearch-8.18.2-amd64.deb"
 
@@ -48,7 +48,7 @@
         enabled: yes
         state: started
     
-- name: Install Kibana on kibana host
+- name: Install Kibana on host
   hosts: kibana
   become: yes
   tasks:
@@ -56,7 +56,7 @@
       apt:
         update_cache: yes
     
-    - name: Установка Kibana
+    - name: Install Kibana
       apt:
         deb: "https://mirror.yandex.ru/mirrors/elastic/8/pool/main/k/kibana/kibana-8.18.2-amd64.deb"
 

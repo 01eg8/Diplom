@@ -16,7 +16,7 @@
       apt:
         update_cache: yes
 
-    - name: Установка filebeat
+    - name: Install filebeat
       apt:
         deb: "https://mirror.yandex.ru/mirrors/elastic/8/pool/main/f/filebeat/filebeat-8.18.2-amd64.deb"
 
