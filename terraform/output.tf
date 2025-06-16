@@ -1,15 +1,25 @@
 resource "local_file" "ansible_inventory" {
   content  = <<-EOT
-    [web_servers]
+    [all]
     web1 ansible_host=vx-1
     web2 ansible_host=vx-2
     web3 ansible_host=vx-3
+    elasticsearch ansible_host=elasticsearch
+    kibana ansible_host=kibana
+    bastion ansible_host=bastion
+    zabbix ansible_host=zabbix
 
-    [web_server_1]
+    [zab_ag]
     web1 ansible_host=vx-1
-    [web_server_2]
     web2 ansible_host=vx-2
-    [web_server_3]
+    web3 ansible_host=vx-3
+    elasticsearch ansible_host=elasticsearch
+    kibana ansible_host=kibana
+    bastion ansible_host=bastion
+
+    [web_servers]
+    web1 ansible_host=vx-1
+    web2 ansible_host=vx-2
     web3 ansible_host=vx-3
 
     [zabbix_server]

@@ -100,14 +100,14 @@ resource "yandex_vpc_security_group" "vox-mon" {
     protocol       = "TCP"
     description    = "ext-http"
     v4_cidr_blocks = ["0.0.0.0/0"]
-    port           = 80
+    port           = 8080
   }
 
   ingress {
     protocol       = "TCP"
     description    = "ext-https"
     v4_cidr_blocks = ["0.0.0.0/0"]
-    port           = 443
+    port           = 5601
   }
 
 }
@@ -162,6 +162,35 @@ resource "yandex_vpc_security_group" "bastion" {
   }
   egress {
     description    = "Permit ANY"
+    protocol       = "ANY"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 0
+    to_port        = 65535
+  }
+}
+
+# Создание группы безопасности для кластера БД PostgreSQL
+
+resource "yandex_vpc_security_group" "pgsql-sg" {
+  name       = "pgsql-sg"
+  network_id = yandex_vpc_network.network-1.id
+  ingress {
+    description    = "port-6432"
+    port           = 6432
+    protocol       = "TCP"
+    # v4_cidr_blocks = [local.subnet_cidr2]
+    v4_cidr_blocks = ["10.1.0.0/16"]
+
+  }
+  ingress {
+    description       = "self"
+    protocol          = "ANY"
+    from_port         = 0
+    to_port           = 65535
+    predefined_target = "self_security_group"
+  }
+  egress {
+    description    = "any"
     protocol       = "ANY"
     v4_cidr_blocks = ["0.0.0.0/0"]
     from_port      = 0

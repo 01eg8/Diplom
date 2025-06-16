@@ -1,0 +1,107 @@
+---
+- name: Установка Zabbix 6 c postgresql и Nginx на Ubuntu 22
+  hosts: zabbix
+  become: true
+  vars:
+    zabbix_db_password: "123456789"
+
+  tasks:
+    - name: Create directory for Zabbix files
+      ansible.builtin.file:
+        path: /etc/zabbix-files
+        state: directory
+        mode: "0755"
+
+    - name: Download the Zabbix release package
+      ansible.builtin.get_url:
+        url: "https://repo.zabbix.com/zabbix/6.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_6.0+ubuntu22.04_all.deb"
+        dest: /etc/zabbix-files
+      become: true
+
+    - name: Install the Zabbix release package
+      apt:
+        deb: /etc/zabbix-files/zabbix-release_latest_6.0+ubuntu22.04_all.deb
+      become: true
+  
+    - name: update cache
+      apt:
+        update_cache: yes
+
+    - name: install zabbix and nginx
+      apt:
+        name:
+          - zabbix-server-pgsql
+          - zabbix-frontend-php
+          - zabbix-nginx-conf
+          - zabbix-sql-scripts
+          - zabbix-agent
+          - php8.1-pgsql
+          - nginx
+        state: present
+
+    - name: Install PostgreSQL packages
+      apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+          - libpq-dev
+          - acl
+          - pip
+        state: present
+
+    - name: Make sure psycopg2 is installed
+      pip:
+        name: psycopg2
+        state: present
+
+    - name: Create Zabbix user in PostgreSQL
+      become: true
+      become_user: postgres
+      postgresql_user:
+        name: zabbix
+        password: "{{ zabbix_db_password }}"
+        state: present
+
+    - name: Create Zabbix database
+      become: true
+      become_user: postgres
+      postgresql_db:
+        name: zabbix
+        state: present
+
+    - name: Grant privileges to Zabbix database
+      become_user: postgres
+      postgresql_query:
+        db: zabbix
+        query: "GRANT ALL PRIVILEGES ON DATABASE zabbix TO zabbix;"
+
+    - name: Import Zabbix schema into PostgreSQL
+      ansible.builtin.shell: |
+        zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | sudo -u zabbix psql zabbix
+      changed_when: false
+
+    - name: Set new database password for MySQL database in zabbix_server.conf
+      ansible.builtin.lineinfile:
+        path: /etc/zabbix/zabbix_server.conf
+        insertafter: "DBPassword="
+        line: DBPassword={{ zabbix_db_password }}
+
+    - name: Set PHP port and server address
+      replace:
+        path: /etc/zabbix/nginx.conf
+        regexp: "{{ item.regexp }}"
+        replace: "{{ item.replace }}"
+      loop:
+        - { regexp: '#        listen          8080;', replace: '        listen          8080;' }
+        - { regexp: '#        server_name     example.com;', replace: '        server_name     zabbix.example.com;' }
+
+    - name: restart service
+      service:
+        name: "{{ item }}"
+        state: restarted
+        enabled: true
+      with_items:
+        - zabbix-server
+        - nginx
+        - postgresql
+

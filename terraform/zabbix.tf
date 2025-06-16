@@ -14,7 +14,7 @@ resource "yandex_compute_instance" "zabbix" {
     initialize_params {
       image_id = data.yandex_compute_image.ubuntu-lts.image_id
       type     = "network-hdd"
-      size     = 30
+      size     = 10
     }
   }
 

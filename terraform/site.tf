@@ -1,4 +1,3 @@
-# Create a new Compute Instance Group
 
 resource "yandex_compute_instance_group" "vox-vm-group" {
   name               = "vox-vm-group"
@@ -59,3 +58,4 @@ resource "yandex_compute_instance_group" "vox-vm-group" {
     target_group_name = "vox-tg"
   }
 }
+

@@ -1,0 +1,92 @@
+---
+- name: get ansible_default_ipv4.address
+  hosts: elasticsearch
+  gather_facts: true
+  tasks:
+    - name: Print ansible_default_ipv4.address
+      debug:
+        msg: "{{ ansible_default_ipv4.address }}"
+
+- name: Install filebeat on nginx hosts
+  hosts: web_servers
+  become: yes
+  tasks:
+    
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Установка filebeat
+      apt:
+        deb: "https://mirror.yandex.ru/mirrors/elastic/8/pool/main/f/filebeat/filebeat-8.18.2-amd64.deb"
+
+    - name: Отключить filestream в конфиге
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        regexp: '^(- type: filestream|  id: my-filestream-id|    - /var/log/\*\.log|  enabled: false|  paths:)$'
+        line: "{{ item }}"
+      loop:
+        - '#- type: filestream'
+        - '  # id: my-filestream-id'
+        - '  # - /var/log/*.log'
+        - '  # enabled: false'
+        - '# paths:'
+
+    - name: Настраиваю входы Filebeat
+      blockinfile:
+        path: /etc/filebeat/filebeat.yml
+        insertafter: '^filebeat.inputs:'
+        block: |
+          - type: log
+            enabled: true
+            paths:
+              - /var/log/nginx/access.log
+              - /var/log/nginx/error.log
+          
+    - name: Добавить настройку Kibana
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        line: 'host: "kibana:5601"'
+        insertafter: '^setup.kibana:'
+
+    - name: Устанавливаю elasticsearch output
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        regexp: '^  hosts: \["localhost:9200"\]'
+        line: '  hosts: ["https://{{  hostvars["elasticsearch"].ansible_default_ipv4.address  }}:9200"]'
+
+    - name: Configure SSL
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        line: '  ssl.verification_mode: none'
+        insertafter: '^  hosts:'
+       
+    - name: Устанавливаю user
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        regexp: '^  #username: "elastic"'
+        line: '  username: "elastic"'
+
+    - name: Устанавливаю password
+      lineinfile:
+        path: /etc/filebeat/filebeat.yml
+        regexp: '^  #password: "changeme"'
+        line: '  password: "123456"'
+
+    - name: Подключаю модуль nginx
+      copy:
+        content: |
+          - module: nginx
+            access:
+              enabled: true
+              var.paths: ["/var/log/nginx/access.log"]
+            error:
+              enabled: true
+              var.paths: ["/var/log/nginx/error.log"]
+        dest: /etc/filebeat/modules.d/nginx.yml
+
+    - name: Перезапускаем filebeat и добавляем в автозагрузку
+      service:
+        name: filebeat
+        state: restarted
+        enabled: yes

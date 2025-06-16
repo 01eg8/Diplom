@@ -1,0 +1,41 @@
+---
+- name: get ansible_default_ipv4.address
+  hosts: zabbix
+  gather_facts: true
+  tasks:
+    - name: Print ansible_default_ipv4.address
+      debug:
+        msg: "{{ ansible_default_ipv4.address }}"
+
+- name: Установка Zabbix agent на Ubuntu 22
+  hosts: zab_ag
+  become: true
+
+  tasks:
+    - name: update cache
+      apt:
+        update_cache: yes
+
+    - name: install zabbix agent
+      apt:
+        name:
+          - zabbix-agent
+        state: present
+
+    - name: Прописываю сервер в conf zabbix-agent
+      replace:
+        path: "/etc/zabbix/zabbix_agentd.conf"
+        regexp: '^Server=127.0.0.1$'
+        replace: 'Server={{  hostvars["zabbix"].ansible_default_ipv4.address  }}'
+
+    - name: Прописываю сервер в conf zabbix-agent
+      replace:
+        path: "/etc/zabbix/zabbix_agentd.conf"
+        regexp: '^ServerActive=127.0.0.1$'
+        replace: 'Server={{  hostvars["zabbix"].ansible_default_ipv4.address  }}'
+
+    - name: restart service
+      service:
+        name: zabbix-agent
+        state: restarted
+        enabled: true
