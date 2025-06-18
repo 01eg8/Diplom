@@ -49,7 +49,6 @@ resource "yandex_vpc_route_table" "rt" {
 }
 
 # Создание групп безопасности
-
 resource "yandex_vpc_security_group" "vox-sg" {
   name       = "vox-sg"
   network_id = yandex_vpc_network.network-1.id
@@ -112,7 +111,6 @@ resource "yandex_vpc_security_group" "vox-mon" {
 
 }
 
-
 resource "yandex_vpc_security_group" "vox-vm-sg" {
   name       = "vox-vm-sg"
   network_id = yandex_vpc_network.network-1.id
@@ -169,37 +167,7 @@ resource "yandex_vpc_security_group" "bastion" {
   }
 }
 
-# Создание группы безопасности для кластера БД PostgreSQL
-
-resource "yandex_vpc_security_group" "pgsql-sg" {
-  name       = "pgsql-sg"
-  network_id = yandex_vpc_network.network-1.id
-  ingress {
-    description    = "port-6432"
-    port           = 6432
-    protocol       = "TCP"
-    # v4_cidr_blocks = [local.subnet_cidr2]
-    v4_cidr_blocks = ["10.1.0.0/16"]
-
-  }
-  ingress {
-    description       = "self"
-    protocol          = "ANY"
-    from_port         = 0
-    to_port           = 65535
-    predefined_target = "self_security_group"
-  }
-  egress {
-    description    = "any"
-    protocol       = "ANY"
-    v4_cidr_blocks = ["0.0.0.0/0"]
-    from_port      = 0
-    to_port        = 65535
-  }
-}
-
 # Создание группы бэкендов
-
 resource "yandex_alb_backend_group" "vox-bg" {
   name = "vox-bg"
   http_backend {
@@ -218,7 +186,6 @@ resource "yandex_alb_backend_group" "vox-bg" {
 }
 
 # Создание HTTP-роутера и виртуального хоста
-
 resource "yandex_alb_http_router" "vox-router" {
   name = "vox-router"
 }
@@ -237,7 +204,6 @@ resource "yandex_alb_virtual_host" "vox-host" {
 }
 
 # Создание L7-балансировщика
-
 resource "yandex_alb_load_balancer" "vox-1" {
   name               = "vox-1"
   network_id         = yandex_vpc_network.network-1.id

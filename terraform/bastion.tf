@@ -23,7 +23,7 @@ resource "yandex_compute_instance" "bastion" {
     serial-port-enable = 1
   }
 
-  scheduling_policy { preemptible = true }
+  scheduling_policy { preemptible = false }
 
   network_interface {
     subnet_id          = yandex_vpc_subnet.subnet-1.id

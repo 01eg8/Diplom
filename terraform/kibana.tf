@@ -22,7 +22,7 @@ resource "yandex_compute_instance" "kibana" {
     user-data          = file("./cloud-init-z.yml")
   }
 
-  scheduling_policy { preemptible = true }
+  scheduling_policy { preemptible = false }
 
   network_interface {
     subnet_id          = yandex_vpc_subnet.subnet-1.id

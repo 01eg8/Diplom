@@ -1,4 +1,48 @@
 
+# providers
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  service_account_key_file = file("~/.authorized_key.json")
+  cloud_id                 = var.cloud_id
+  folder_id                = var.folder_id
+}
+
+# переменные
+variable "cloud_id" {
+  type    = string
+}
+
+variable "folder_id" {
+  type    = string
+}
+
+variable "service_account_id" {
+  type    = string
+}
+
+variable "vox" {
+  type = map(number)
+  default = {
+    cores         = 2
+    memory        = 2
+    core_fraction = 100
+  }
+}
+
+data "yandex_compute_image" "ubuntu-lts" {
+  family = "ubuntu-2204-lts"
+}
+
+
+# site
 resource "yandex_compute_instance_group" "vox-vm-group" {
   name               = "vox-vm-group"
   folder_id          = var.folder_id
@@ -12,7 +56,7 @@ resource "yandex_compute_instance_group" "vox-vm-group" {
       core_fraction = var.vox.core_fraction
     }
 
-    scheduling_policy { preemptible = true }
+    scheduling_policy { preemptible = false }
 
     boot_disk {
       mode = "READ_WRITE"
@@ -59,3 +103,78 @@ resource "yandex_compute_instance_group" "vox-vm-group" {
   }
 }
 
+
+
+# snapshots
+resource "yandex_compute_snapshot_schedule" "vox_snap1" {
+  schedule_policy {
+    expression = "0 0 ? * *"
+  }
+
+  retention_period = "168h"
+
+  snapshot_spec {
+    description = "retention-snapshot"
+  }
+
+  disk_ids = [
+
+
+    "${yandex_compute_instance.bastion.boot_disk.0.disk_id}", 
+    "${yandex_compute_instance.zabbix.boot_disk.0.disk_id}",
+    "${yandex_compute_instance.kibana.boot_disk.0.disk_id}",
+    "${yandex_compute_instance.elasticsearch.boot_disk.0.disk_id}" #, 
+    ] 
+}
+
+
+# output
+resource "local_file" "ansible_inventory" {
+  content  = <<-EOT
+    [all]
+    web1 ansible_host=vx-1
+    web2 ansible_host=vx-2
+    web3 ansible_host=vx-3
+    elasticsearch ansible_host=elasticsearch
+    kibana ansible_host=kibana
+    bastion ansible_host=bastion
+    zabbix ansible_host=zabbix
+
+    [zab_ag]
+    web1 ansible_host=vx-1
+    web2 ansible_host=vx-2
+    web3 ansible_host=vx-3
+    elasticsearch ansible_host=elasticsearch
+    kibana ansible_host=kibana
+    bastion ansible_host=bastion
+
+    [web_servers]
+    web1 ansible_host=vx-1
+    web2 ansible_host=vx-2
+    web3 ansible_host=vx-3
+
+    [zabbix_server]
+    zabbix ansible_host=zabbix
+
+    [elastic_server]
+    elasticsearch ansible_host=elasticsearch
+
+    [kibana_server]
+    kibana ansible_host=kibana
+
+    [bastion_server]
+    bastion ansible_host=bastion
+
+    [all:vars]
+    ansible_user=amd48
+    ansible_ssh_key_file=/home/amd48/.ssh/id_ed25519.pub
+    ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ProxyCommand="ssh -p 22 -W %h:%p -q amd48@${yandex_compute_instance.bastion.network_interface.0.nat_ip_address}"'
+    
+    
+    # ssh -J amd48@${yandex_compute_instance.bastion.network_interface.0.nat_ip_address} amd48@zabbix 
+    # ssh -J amd48@${yandex_compute_instance.bastion.network_interface.0.nat_ip_address} amd48@kibana
+    # ssh -J amd48@${yandex_compute_instance.bastion.network_interface.0.nat_ip_address} amd48@elasticsearch
+
+    EOT
+  filename = "../dplm-ans/hosts.ini"
+}
